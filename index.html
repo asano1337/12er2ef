@@ -1,0 +1,2443 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+  />
+
+  <title>HabitFlow</title>
+
+  <!-- Telegram Mini Apps SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Modern font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root {
+      --app-bg: var(--tg-theme-bg-color, #0b0b12);
+      --app-secondary-bg: var(--tg-theme-secondary-bg-color, #15151f);
+      --app-text: var(--tg-theme-text-color, #ffffff);
+      --app-hint: var(--tg-theme-hint-color, #9292a3);
+      --app-button: var(--tg-theme-button-color, #6d5dfc);
+      --app-button-text: var(--tg-theme-button-text-color, #ffffff);
+
+      --card: rgba(255, 255, 255, 0.075);
+      --card-border: rgba(255, 255, 255, 0.095);
+
+      --purple: #7c5cff;
+      --blue: #4d8dff;
+      --pink: #ff5ca8;
+      --orange: #ff9a5c;
+      --green: #42d392;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--app-bg);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(
+          circle at 10% -5%,
+          rgba(124, 92, 255, 0.20),
+          transparent 32%
+        ),
+        radial-gradient(
+          circle at 100% 20%,
+          rgba(77, 141, 255, 0.12),
+          transparent 28%
+        ),
+        var(--app-bg);
+      color: var(--app-text);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      overflow-x: hidden;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 720px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding:
+        max(18px, env(safe-area-inset-top))
+        16px
+        calc(90px + env(safe-area-inset-bottom));
+    }
+
+    .glass {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .gradient-text {
+      background: linear-gradient(100deg, #a98bff, #6ca7ff, #ff73b7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .gradient-bg {
+      background:
+        linear-gradient(
+          135deg,
+          rgba(124, 92, 255, 0.95),
+          rgba(77, 141, 255, 0.95)
+        );
+    }
+
+    .gradient-pink {
+      background:
+        linear-gradient(
+          135deg,
+          rgba(255, 92, 168, 0.95),
+          rgba(255, 154, 92, 0.95)
+        );
+    }
+
+    .gradient-green {
+      background:
+        linear-gradient(
+          135deg,
+          rgba(66, 211, 146, 0.95),
+          rgba(52, 180, 160, 0.95)
+        );
+    }
+
+    .progress-ring {
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+
+    .progress-ring-circle {
+      transition:
+        stroke-dashoffset 600ms cubic-bezier(.22,1,.36,1),
+        stroke 300ms ease;
+    }
+
+    .habit-card {
+      position: relative;
+      overflow: hidden;
+      transition:
+        transform 180ms ease,
+        background 180ms ease,
+        border-color 180ms ease;
+    }
+
+    .habit-card:active {
+      transform: scale(0.985);
+    }
+
+    .habit-card.completed {
+      opacity: 0.72;
+    }
+
+    .habit-card.completed .habit-title {
+      text-decoration: line-through;
+      text-decoration-color: rgba(255,255,255,.4);
+    }
+
+    .habit-card::after {
+      content: "";
+      position: absolute;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      right: -35px;
+      top: -45px;
+      background: var(--habit-color, rgba(124,92,255,.3));
+      filter: blur(25px);
+      opacity: .16;
+      pointer-events: none;
+    }
+
+    .check-button {
+      position: relative;
+      z-index: 2;
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      border-radius: 15px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.055);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 220ms cubic-bezier(.22,1,.36,1);
+    }
+
+    .check-button.checked {
+      background: linear-gradient(135deg, #7c5cff, #4d8dff);
+      border-color: transparent;
+      box-shadow: 0 8px 25px rgba(100, 90, 255, .28);
+    }
+
+    .check-icon {
+      width: 20px;
+      height: 20px;
+      opacity: 0;
+      transform: scale(.4) rotate(-20deg);
+      transition: all 250ms cubic-bezier(.22,1,.36,1);
+    }
+
+    .check-button.checked .check-icon {
+      opacity: 1;
+      transform: scale(1) rotate(0);
+    }
+
+    .habit-icon {
+      width: 48px;
+      height: 48px;
+      min-width: 48px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.07);
+    }
+
+    .floating-button {
+      position: fixed;
+      z-index: 30;
+      right: max(20px, calc((100vw - 720px) / 2 + 20px));
+      bottom: calc(22px + env(safe-area-inset-bottom));
+      width: 58px;
+      height: 58px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      background: linear-gradient(135deg, #7c5cff, #4d8dff);
+      box-shadow:
+        0 15px 35px rgba(76, 67, 190, .42),
+        0 5px 12px rgba(0,0,0,.2);
+      transition: transform 180ms ease;
+    }
+
+    .floating-button:active {
+      transform: scale(.92);
+    }
+
+    .nav-bar {
+      position: fixed;
+      z-index: 25;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(10px + env(safe-area-inset-bottom));
+      width: min(430px, calc(100% - 32px));
+      height: 64px;
+      padding: 6px;
+      border-radius: 22px;
+      display: flex;
+      gap: 5px;
+      box-shadow: 0 15px 40px rgba(0,0,0,.25);
+    }
+
+    .nav-item {
+      flex: 1;
+      border-radius: 17px;
+      background: transparent;
+      color: var(--app-hint);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      transition: all 180ms ease;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    .nav-item.active {
+      color: white;
+      background: rgba(255,255,255,.10);
+    }
+
+    .nav-icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(0,0,0,.58);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 220ms ease, visibility 220ms ease;
+    }
+
+    .modal-backdrop.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 720px;
+      max-height: 92vh;
+      overflow-y: auto;
+      background:
+        linear-gradient(
+          180deg,
+          rgba(35,35,49,.98),
+          rgba(17,17,25,.99)
+        );
+      border-radius: 28px 28px 0 0;
+      border: 1px solid rgba(255,255,255,.1);
+      padding:
+        12px
+        20px
+        calc(24px + env(safe-area-inset-bottom));
+      transform: translateY(100%);
+      transition: transform 350ms cubic-bezier(.22,1,.36,1);
+    }
+
+    .modal-backdrop.open .modal {
+      transform: translateY(0);
+    }
+
+    .modal-handle {
+      width: 42px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.22);
+      margin: 0 auto 20px;
+    }
+
+    .input {
+      width: 100%;
+      height: 54px;
+      padding: 0 16px;
+      color: var(--app-text);
+      background: rgba(255,255,255,.065);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 16px;
+      outline: none;
+      transition: border-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .input:focus {
+      border-color: rgba(124,92,255,.75);
+      box-shadow: 0 0 0 4px rgba(124,92,255,.12);
+    }
+
+    .input::placeholder {
+      color: var(--app-hint);
+    }
+
+    .emoji-option,
+    .color-option {
+      transition: transform 150ms ease, border-color 150ms ease;
+    }
+
+    .emoji-option:active,
+    .color-option:active {
+      transform: scale(.92);
+    }
+
+    .emoji-option.selected,
+    .color-option.selected {
+      border-color: rgba(255,255,255,.8);
+      box-shadow: 0 0 0 2px rgba(124,92,255,.45);
+    }
+
+    .toast {
+      position: fixed;
+      z-index: 200;
+      left: 50%;
+      top: max(20px, env(safe-area-inset-top));
+      transform: translate(-50%, -20px);
+      background: rgba(28,28,38,.92);
+      border: 1px solid rgba(255,255,255,.1);
+      backdrop-filter: blur(18px);
+      border-radius: 16px;
+      padding: 12px 16px;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 15px 40px rgba(0,0,0,.3);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 250ms ease;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .stat-bar {
+      position: relative;
+      height: 100%;
+      min-height: 30px;
+      border-radius: 10px 10px 6px 6px;
+      background: linear-gradient(
+        180deg,
+        rgba(124,92,255,.9),
+        rgba(77,141,255,.45)
+      );
+      transform-origin: bottom;
+      animation: barIn 500ms cubic-bezier(.22,1,.36,1) both;
+    }
+
+    @keyframes barIn {
+      from {
+        transform: scaleY(0);
+        opacity: 0;
+      }
+      to {
+        transform: scaleY(1);
+        opacity: 1;
+      }
+    }
+
+    .fade-up {
+      animation: fadeUp 450ms cubic-bezier(.22,1,.36,1) both;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .pulse {
+      animation: pulse 700ms ease;
+    }
+
+    @keyframes pulse {
+      0%,100% { transform: scale(1); }
+      45% { transform: scale(1.08); }
+    }
+
+    .level-progress {
+      height: 7px;
+      background: rgba(255,255,255,.09);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .level-progress > div {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #7c5cff, #6ca7ff, #ff73b7);
+      transition: width 500ms cubic-bezier(.22,1,.36,1);
+    }
+
+    .empty-state {
+      border: 1px dashed rgba(255,255,255,.13);
+      border-radius: 22px;
+      padding: 32px 20px;
+      text-align: center;
+      color: var(--app-hint);
+      background: rgba(255,255,255,.025);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (min-width: 640px) {
+      .modal {
+        border-radius: 28px;
+        margin-bottom: 20px;
+      }
+
+      .modal-backdrop {
+        align-items: center;
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+
+    <!-- DASHBOARD -->
+    <section id="dashboardScreen">
+
+      <!-- Header -->
+      <header class="flex items-center justify-between mb-7 fade-up">
+        <div>
+          <p id="greeting" class="text-sm font-medium mb-1" style="color:var(--app-hint)">
+            Добрый вечер
+          </p>
+          <h1 class="text-[28px] leading-tight font-extrabold tracking-tight">
+            Привет, <span id="userName" class="gradient-text">друг</span> 👋
+          </h1>
+        </div>
+
+        <button
+          id="profileButton"
+          class="glass w-12 h-12 rounded-2xl flex items-center justify-center text-xl"
+          aria-label="Профиль"
+        >
+          👤
+        </button>
+      </header>
+
+      <!-- Progress -->
+      <section
+        class="glass rounded-[28px] p-5 mb-5 relative overflow-hidden fade-up"
+        style="animation-delay:60ms"
+      >
+        <div
+          class="absolute -right-16 -top-20 w-48 h-48 rounded-full blur-3xl opacity-20"
+          style="background:#7c5cff"
+        ></div>
+
+        <div class="flex items-center gap-5 relative z-10">
+
+          <div class="relative w-[126px] h-[126px] flex-shrink-0">
+            <svg
+              class="w-full h-full progress-ring"
+              viewBox="0 0 120 120"
+            >
+              <circle
+                cx="60"
+                cy="60"
+                r="49"
+                fill="none"
+                stroke="rgba(255,255,255,.08)"
+                stroke-width="9"
+              />
+
+              <circle
+                id="progressCircle"
+                class="progress-ring-circle"
+                cx="60"
+                cy="60"
+                r="49"
+                fill="none"
+                stroke="url(#progressGradient)"
+                stroke-width="9"
+                stroke-linecap="round"
+                stroke-dasharray="307.88"
+                stroke-dashoffset="307.88"
+              />
+
+              <defs>
+                <linearGradient id="progressGradient">
+                  <stop offset="0%" stop-color="#7c5cff" />
+                  <stop offset="100%" stop-color="#4d8dff" />
+                </linearGradient>
+              </defs>
+            </svg>
+
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span id="progressPercent" class="text-2xl font-extrabold">
+                0%
+              </span>
+              <span
+                id="progressFraction"
+                class="text-[10px] font-medium"
+                style="color:var(--app-hint)"
+              >
+                0 / 0
+              </span>
+            </div>
+          </div>
+
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium mb-1" style="color:var(--app-hint)">
+              Сегодня
+            </p>
+
+            <h2 id="progressTitle" class="text-xl font-bold mb-2">
+              Начни свой день
+            </h2>
+
+            <p id="progressSubtitle" class="text-xs leading-relaxed" style="color:var(--app-hint)">
+              Маленькие действия каждый день превращаются в большие изменения.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- XP -->
+      <section
+        class="glass rounded-[22px] p-4 mb-7 fade-up"
+        style="animation-delay:100ms"
+      >
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-10 h-10 rounded-xl flex items-center justify-center text-lg gradient-pink"
+            >
+              ✨
+            </div>
+
+            <div>
+              <p class="text-[11px]" style="color:var(--app-hint)">
+                Текущий уровень
+              </p>
+              <p id="levelText" class="font-bold text-sm">
+                Уровень 1
+              </p>
+            </div>
+          </div>
+
+          <div class="text-right">
+            <p id="xpText" class="font-bold text-sm">
+              0 XP
+            </p>
+            <p id="nextLevelText" class="text-[10px]" style="color:var(--app-hint)">
+              до уровня 2
+            </p>
+          </div>
+        </div>
+
+        <div class="level-progress">
+          <div id="levelBar" style="width:0%"></div>
+        </div>
+      </section>
+
+      <!-- Habits heading -->
+      <div class="flex items-end justify-between mb-3 fade-up" style="animation-delay:140ms">
+        <div>
+          <p class="text-xs font-medium mb-1" style="color:var(--app-hint)">
+            Твой план
+          </p>
+          <h2 class="text-xl font-bold">Привычки на сегодня</h2>
+        </div>
+
+        <span
+          id="habitCount"
+          class="text-xs font-semibold px-3 py-1.5 rounded-full"
+          style="background:rgba(255,255,255,.07);color:var(--app-hint)"
+        >
+          0 привычек
+        </span>
+      </div>
+
+      <!-- Habits -->
+      <div id="habitList" class="space-y-3"></div>
+
+      <!-- Empty state -->
+      <div id="emptyState" class="empty-state hidden mt-3 fade-up">
+        <div class="text-4xl mb-4">🌱</div>
+        <h3 class="font-bold text-lg mb-2" style="color:var(--app-text)">
+          Создай первую привычку
+        </h3>
+        <p class="text-sm leading-relaxed mb-5">
+          Добавь небольшое действие, которое хочешь превратить в часть своей жизни.
+        </p>
+
+        <button
+          id="emptyAddButton"
+          class="gradient-bg text-white font-bold px-5 py-3 rounded-2xl"
+        >
+          + Добавить привычку
+        </button>
+      </div>
+
+    </section>
+
+    <!-- STATISTICS -->
+    <section id="statsScreen" class="hidden">
+
+      <header class="flex items-center gap-3 mb-7 fade-up">
+        <button
+          id="statsBackButton"
+          class="glass w-11 h-11 rounded-2xl flex items-center justify-center"
+          aria-label="Назад"
+        >
+          ←
+        </button>
+
+        <div>
+          <p class="text-xs" style="color:var(--app-hint)">
+            Аналитика
+          </p>
+          <h1 class="text-2xl font-extrabold">
+            Твоя статистика
+          </h1>
+        </div>
+      </header>
+
+      <!-- Summary -->
+      <div class="grid grid-cols-2 gap-3 mb-5">
+        <div class="glass rounded-[22px] p-4 fade-up">
+          <div class="text-2xl mb-3">🔥</div>
+          <p id="statsStreak" class="text-2xl font-extrabold">0</p>
+          <p class="text-xs mt-1" style="color:var(--app-hint)">
+            дней серии
+          </p>
+        </div>
+
+        <div class="glass rounded-[22px] p-4 fade-up" style="animation-delay:50ms">
+          <div class="text-2xl mb-3">⚡</div>
+          <p id="statsCompleted" class="text-2xl font-extrabold">0</p>
+          <p class="text-xs mt-1" style="color:var(--app-hint)">
+            выполнено всего
+          </p>
+        </div>
+
+        <div class="glass rounded-[22px] p-4 fade-up" style="animation-delay:100ms">
+          <div class="text-2xl mb-3">🎯</div>
+          <p id="statsRate" class="text-2xl font-extrabold">0%</p>
+          <p class="text-xs mt-1" style="color:var(--app-hint)">
+            средняя эффективность
+          </p>
+        </div>
+
+        <div class="glass rounded-[22px] p-4 fade-up" style="animation-delay:150ms">
+          <div class="text-2xl mb-3">🏆</div>
+          <p id="statsBest" class="text-2xl font-extrabold">0</p>
+          <p class="text-xs mt-1" style="color:var(--app-hint)">
+            лучшая серия
+          </p>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <section class="glass rounded-[26px] p-5 mb-5">
+        <div class="flex justify-between items-start mb-6">
+          <div>
+            <p class="text-xs mb-1" style="color:var(--app-hint)">
+              Последние 7 дней
+            </p>
+            <h2 class="font-bold text-lg">Активность</h2>
+          </div>
+
+          <div
+            class="text-xs font-semibold px-3 py-1.5 rounded-full"
+            style="background:rgba(124,92,255,.12);color:#a99aff"
+          >
+            Выполнения
+          </div>
+        </div>
+
+        <div
+          id="chart"
+          class="h-[190px] flex items-end gap-2"
+        ></div>
+      </section>
+
+      <!-- Habit statistics -->
+      <section>
+        <div class="mb-3">
+          <p class="text-xs" style="color:var(--app-hint)">
+            По привычкам
+          </p>
+          <h2 class="text-xl font-bold">Результаты</h2>
+        </div>
+
+        <div id="habitStatsList" class="space-y-3"></div>
+      </section>
+    </section>
+
+  </main>
+
+  <!-- Bottom navigation -->
+  <nav id="bottomNav" class="nav-bar glass">
+
+    <button class="nav-item active" data-screen="dashboard">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 10.5 12 3l9 7.5"/>
+        <path d="M5 9.5V21h14V9.5"/>
+        <path d="M9 21v-6h6v6"/>
+      </svg>
+      Главная
+    </button>
+
+    <button class="nav-item" data-screen="stats">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 19V5"/>
+        <path d="M4 19h16"/>
+        <path d="M8 16v-4"/>
+        <path d="M12 16V8"/>
+        <path d="M16 16v-7"/>
+        <path d="M20 16v-10"/>
+      </svg>
+      Статистика
+    </button>
+
+  </nav>
+
+  <!-- Floating add button -->
+  <button
+    id="addButton"
+    class="floating-button"
+    aria-label="Добавить привычку"
+  >
+    <svg width="25" height="25" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 5v14M5 12h14"
+        stroke="white"
+        stroke-width="2.4"
+        stroke-linecap="round"
+      />
+    </svg>
+  </button>
+
+  <!-- Habit modal -->
+  <div id="habitModal" class="modal-backdrop">
+    <div class="modal">
+
+      <div class="modal-handle"></div>
+
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <p class="text-xs mb-1" style="color:var(--app-hint)">
+            HabitFlow
+          </p>
+          <h2 id="modalTitle" class="text-2xl font-extrabold">
+            Новая привычка
+          </h2>
+        </div>
+
+        <button
+          id="closeModal"
+          class="w-10 h-10 rounded-xl flex items-center justify-center"
+          style="background:rgba(255,255,255,.07);color:var(--app-hint)"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- Name -->
+      <label class="block mb-5">
+        <span class="text-xs font-semibold block mb-2" style="color:var(--app-hint)">
+          Название
+        </span>
+
+        <input
+          id="habitName"
+          class="input"
+          type="text"
+          maxlength="50"
+          placeholder="Например, выпить 2 л воды"
+          autocomplete="off"
+        />
+      </label>
+
+      <!-- Emoji -->
+      <div class="mb-5">
+        <span class="text-xs font-semibold block mb-2" style="color:var(--app-hint)">
+          Иконка
+        </span>
+
+        <div id="emojiPicker" class="grid grid-cols-7 gap-2">
+          <!-- JS -->
+        </div>
+      </div>
+
+      <!-- Color -->
+      <div class="mb-5">
+        <span class="text-xs font-semibold block mb-2" style="color:var(--app-hint)">
+          Цвет
+        </span>
+
+        <div id="colorPicker" class="grid grid-cols-6 gap-2">
+          <!-- JS -->
+        </div>
+      </div>
+
+      <!-- Frequency -->
+      <div class="mb-6">
+        <span class="text-xs font-semibold block mb-2" style="color:var(--app-hint)">
+          Частота
+        </span>
+
+        <div class="grid grid-cols-3 gap-2">
+          <button
+            class="frequency-option glass rounded-2xl p-3 text-xs font-semibold"
+            data-frequency="daily"
+          >
+            Каждый день
+          </button>
+
+          <button
+            class="frequency-option glass rounded-2xl p-3 text-xs font-semibold"
+            data-frequency="alternate"
+          >
+            Через день
+          </button>
+
+          <button
+            class="frequency-option glass rounded-2xl p-3 text-xs font-semibold"
+            data-frequency="weekdays"
+          >
+            По будням
+          </button>
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <button
+          id="cancelModal"
+          class="flex-1 h-14 rounded-2xl font-bold"
+          style="background:rgba(255,255,255,.07);color:var(--app-text)"
+        >
+          Отмена
+        </button>
+
+        <button
+          id="saveHabit"
+          class="flex-[1.5] h-14 rounded-2xl font-bold text-white gradient-bg"
+        >
+          Сохранить
+        </button>
+      </div>
+
+      <button
+        id="deleteHabit"
+        class="hidden w-full mt-3 h-12 rounded-2xl font-semibold text-sm"
+        style="color:#ff6b81;background:rgba(255,107,129,.08)"
+      >
+        Удалить привычку
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Profile modal -->
+  <div id="profileModal" class="modal-backdrop">
+    <div class="modal">
+
+      <div class="modal-handle"></div>
+
+      <div class="text-center">
+        <div
+          id="profileAvatar"
+          class="w-20 h-20 rounded-[26px] gradient-bg mx-auto flex items-center justify-center text-3xl mb-4"
+        >
+          👤
+        </div>
+
+        <h2 id="profileName" class="text-xl font-extrabold">
+          Пользователь
+        </h2>
+
+        <p id="profileUsername" class="text-sm mt-1" style="color:var(--app-hint)">
+          @username
+        </p>
+      </div>
+
+      <div class="glass rounded-2xl p-4 mt-6">
+        <div class="flex justify-between mb-3">
+          <span class="text-sm" style="color:var(--app-hint)">
+            Всего XP
+          </span>
+          <strong id="profileXP">0</strong>
+        </div>
+
+        <div class="flex justify-between">
+          <span class="text-sm" style="color:var(--app-hint)">
+            Уровень
+          </span>
+          <strong id="profileLevel">1</strong>
+        </div>
+      </div>
+
+      <button
+        id="closeProfile"
+        class="w-full h-14 rounded-2xl font-bold mt-5"
+        style="background:rgba(255,255,255,.08)"
+      >
+        Закрыть
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <script>
+    /* ============================================================
+       HABITFLOW
+       ============================================================ */
+
+    const tg = window.Telegram?.WebApp || null;
+
+    const STORAGE_KEY = "habitflow_v1";
+
+    const DEFAULT_EMOJIS = [
+      "💧", "🏃", "📚", "🧘", "🥗", "😴", "💪",
+      "🧠", "✍️", "🎸", "🧹", "☀️", "🚶", "🍎",
+      "💻", "🧴", "🌱", "🎯", "❤️", "🛌", "🧘‍♂️"
+    ];
+
+    const COLORS = [
+      "linear-gradient(135deg,#7c5cff,#4d8dff)",
+      "linear-gradient(135deg,#ff5ca8,#ff9a5c)",
+      "linear-gradient(135deg,#42d392,#34b4a0)",
+      "linear-gradient(135deg,#ff7b54,#ffc857)",
+      "linear-gradient(135deg,#a56bff,#ef5da8)",
+      "linear-gradient(135deg,#38bdf8,#6366f1)"
+    ];
+
+    const COLOR_NAMES = [
+      "#7c5cff",
+      "#ff5ca8",
+      "#42d392",
+      "#ff9a5c",
+      "#a56bff",
+      "#38bdf8"
+    ];
+
+    let state = loadState();
+
+    let editingHabitId = null;
+
+    let selectedEmoji = DEFAULT_EMOJIS[0];
+    let selectedColor = 0;
+    let selectedFrequency = "daily";
+
+    /* ============================================================
+       TELEGRAM
+       ============================================================ */
+
+    function initTelegram() {
+      if (!tg) return;
+
+      try {
+        tg.ready();
+        tg.expand();
+
+        if (tg.setHeaderColor) {
+          tg.setHeaderColor("secondary_bg_color");
+        }
+
+        if (tg.setBackgroundColor) {
+          tg.setBackgroundColor("bg_color");
+        }
+      } catch (error) {
+        console.warn("Telegram initialization:", error);
+      }
+    }
+
+    function haptic(type = "light") {
+      try {
+        tg?.HapticFeedback?.impactOccurred(type);
+      } catch (_) {}
+    }
+
+    function setupBackButton() {
+      if (!tg?.BackButton) return;
+
+      try {
+        tg.BackButton.show();
+
+        tg.BackButton.onClick(() => {
+          showScreen("dashboard");
+        });
+      } catch (_) {}
+    }
+
+    function hideBackButton() {
+      try {
+        tg?.BackButton?.hide();
+      } catch (_) {}
+    }
+
+    /* ============================================================
+       DATA
+       ============================================================ */
+
+    function defaultState() {
+      return {
+        version: 1,
+        habits: [],
+        completions: {},
+        xp: 0,
+        createdAt: new Date().toISOString()
+      };
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+
+        if (!raw) return defaultState();
+
+        const parsed = JSON.parse(raw);
+
+        return {
+          ...defaultState(),
+          ...parsed,
+          habits: Array.isArray(parsed.habits) ? parsed.habits : [],
+          completions: parsed.completions || {}
+        };
+      } catch (error) {
+        console.error("Failed to load state:", error);
+        return defaultState();
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (error) {
+        console.error("Failed to save state:", error);
+      }
+    }
+
+    function generateId() {
+      return (
+        Date.now().toString(36) +
+        Math.random().toString(36).slice(2, 8)
+      );
+    }
+
+    /* ============================================================
+       DATE HELPERS
+       ============================================================ */
+
+    function dateKey(date = new Date()) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+
+      return `${y}-${m}-${d}`;
+    }
+
+    function parseDate(key) {
+      const [y, m, d] = key.split("-").map(Number);
+
+      return new Date(y, m - 1, d);
+    }
+
+    function addDays(date, amount) {
+      const copy = new Date(date);
+      copy.setDate(copy.getDate() + amount);
+      return copy;
+    }
+
+    function daysBetween(a, b) {
+      const start = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+      const end = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+
+      return Math.round(
+        (end - start) / 86400000
+      );
+    }
+
+    function formatDateShort(date) {
+      return date.toLocaleDateString("ru-RU", {
+        weekday: "short",
+        day: "numeric"
+      }).replace(".", "");
+    }
+
+    function todayIsWeekday() {
+      const day = new Date().getDay();
+      return day >= 1 && day <= 5;
+    }
+
+    /* ============================================================
+       FREQUENCY
+       ============================================================ */
+
+    function isHabitScheduled(habit, date = new Date()) {
+      if (habit.frequency === "weekdays") {
+        const day = date.getDay();
+        return day >= 1 && day <= 5;
+      }
+
+      if (habit.frequency === "alternate") {
+        const created = parseDate(
+          habit.createdDate || dateKey()
+        );
+
+        return daysBetween(created, date) % 2 === 0;
+      }
+
+      return true;
+    }
+
+    function getTodayHabits() {
+      return state.habits.filter(habit =>
+        isHabitScheduled(habit, new Date())
+      );
+    }
+
+    /* ============================================================
+       COMPLETIONS
+       ============================================================ */
+
+    function isCompleted(habitId, key = dateKey()) {
+      return Boolean(
+        state.completions[key]?.includes(habitId)
+      );
+    }
+
+    function setCompleted(habitId, completed, key = dateKey()) {
+      if (!state.completions[key]) {
+        state.completions[key] = [];
+      }
+
+      const list = state.completions[key];
+
+      const index = list.indexOf(habitId);
+
+      if (completed && index === -1) {
+        list.push(habitId);
+      }
+
+      if (!completed && index !== -1) {
+        list.splice(index, 1);
+      }
+
+      if (list.length === 0) {
+        delete state.completions[key];
+      }
+    }
+
+    function toggleHabit(habitId) {
+      const habit = state.habits.find(h => h.id === habitId);
+
+      if (!habit) return;
+
+      const currentlyCompleted = isCompleted(habitId);
+
+      setCompleted(
+        habitId,
+        !currentlyCompleted
+      );
+
+      if (!currentlyCompleted) {
+        state.xp += 10;
+        showToast("+10 XP ✨");
+        haptic("light");
+      } else {
+        state.xp = Math.max(0, state.xp - 10);
+        haptic("light");
+      }
+
+      saveState();
+
+      renderDashboard();
+      renderStats();
+    }
+
+    /* ============================================================
+       USER
+       ============================================================ */
+
+    function getTelegramUser() {
+      return tg?.initDataUnsafe?.user || null;
+    }
+
+    function getFirstName() {
+      const user = getTelegramUser();
+
+      if (user?.first_name) {
+        return user.first_name;
+      }
+
+      return "друг";
+    }
+
+    function getUserDisplayName() {
+      const user = getTelegramUser();
+
+      if (!user) return "Пользователь";
+
+      return (
+        [user.first_name, user.last_name]
+          .filter(Boolean)
+          .join(" ") ||
+        "Пользователь"
+      );
+    }
+
+    function setupUser() {
+      const user = getTelegramUser();
+
+      const firstName = getFirstName();
+
+      document.getElementById("userName").textContent =
+        firstName;
+
+      document.getElementById("profileName").textContent =
+        getUserDisplayName();
+
+      if (user?.username) {
+        document.getElementById("profileUsername").textContent =
+          "@" + user.username;
+      } else {
+        document.getElementById("profileUsername").textContent =
+          "HabitFlow";
+      }
+
+      if (user?.photo_url) {
+        const avatar =
+          document.getElementById("profileAvatar");
+
+        avatar.innerHTML = `
+          <img
+            src="${escapeHtml(user.photo_url)}"
+            alt=""
+            class="w-full h-full object-cover rounded-[26px]"
+          />
+        `;
+      }
+    }
+
+    function setupGreeting() {
+      const hour = new Date().getHours();
+
+      let greeting = "Добрый вечер";
+
+      if (hour >= 5 && hour < 12) {
+        greeting = "Доброе утро";
+      } else if (hour >= 12 && hour < 18) {
+        greeting = "Добрый день";
+      }
+
+      document.getElementById("greeting").textContent =
+        greeting;
+    }
+
+    /* ============================================================
+       LEVEL / XP
+       ============================================================ */
+
+    function getLevelInfo() {
+      const xp = state.xp;
+
+      const level = Math.floor(xp / 100) + 1;
+      const currentLevelXp = (level - 1) * 100;
+      const nextLevelXp = level * 100;
+
+      const progress =
+        ((xp - currentLevelXp) /
+          (nextLevelXp - currentLevelXp)) *
+        100;
+
+      return {
+        level,
+        progress: Math.min(100, Math.max(0, progress)),
+        remaining: Math.max(0, nextLevelXp - xp)
+      };
+    }
+
+    function renderLevel() {
+      const info = getLevelInfo();
+
+      document.getElementById("levelText").textContent =
+        `Уровень ${info.level}`;
+
+      document.getElementById("xpText").textContent =
+        `${state.xp} XP`;
+
+      document.getElementById("nextLevelText").textContent =
+        `${info.remaining} XP до уровня ${info.level + 1}`;
+
+      document.getElementById("levelBar").style.width =
+        `${info.progress}%`;
+
+      document.getElementById("profileXP").textContent =
+        state.xp;
+
+      document.getElementById("profileLevel").textContent =
+        info.level;
+    }
+
+    /* ============================================================
+       DASHBOARD
+       ============================================================ */
+
+    function renderDashboard() {
+      const habits = getTodayHabits();
+
+      const completed = habits.filter(habit =>
+        isCompleted(habit.id)
+      ).length;
+
+      const total = habits.length;
+
+      const percentage =
+        total === 0
+          ? 0
+          : Math.round((completed / total) * 100);
+
+      updateProgress(
+        percentage,
+        completed,
+        total
+      );
+
+      renderHabitList(habits);
+
+      const count = document.getElementById("habitCount");
+
+      count.textContent =
+        `${total} ${pluralize(total, ["привычка", "привычки", "привычек"])}`;
+
+      document.getElementById("emptyState")
+        .classList.toggle("hidden", total > 0);
+
+      renderLevel();
+    }
+
+    function updateProgress(percent, completed, total) {
+      const circle =
+        document.getElementById("progressCircle");
+
+      const circumference = 307.88;
+
+      const offset =
+        circumference -
+        (percent / 100) * circumference;
+
+      circle.style.strokeDashoffset = offset;
+
+      document.getElementById("progressPercent")
+        .textContent = `${percent}%`;
+
+      document.getElementById("progressFraction")
+        .textContent = `${completed} / ${total}`;
+
+      const title =
+        document.getElementById("progressTitle");
+
+      const subtitle =
+        document.getElementById("progressSubtitle");
+
+      if (total === 0) {
+        title.textContent = "Начни свой день";
+        subtitle.textContent =
+          "Добавь первую привычку и начни формировать свою систему.";
+      } else if (percent === 100) {
+        title.textContent = "Всё выполнено! 🎉";
+        subtitle.textContent =
+          "Ты закрыл все задачи на сегодня. Отличная работа!";
+      } else if (percent >= 70) {
+        title.textContent = "Почти готово 🔥";
+        subtitle.textContent =
+          "Осталось совсем немного. Не сбавляй темп.";
+      } else if (percent > 0) {
+        title.textContent = "Хорошее начало";
+        subtitle.textContent =
+          "Продолжай в том же духе — одна галочка за раз.";
+      } else {
+        title.textContent = "Новый день";
+        subtitle.textContent =
+          "Маленькие действия каждый день превращаются в большие изменения.";
+      }
+    }
+
+    function renderHabitList(habits) {
+      const container =
+        document.getElementById("habitList");
+
+      if (habits.length === 0) {
+        container.innerHTML = "";
+        return;
+      }
+
+      container.innerHTML = habits
+        .map((habit, index) => {
+          const completed = isCompleted(habit.id);
+
+          return `
+            <article
+              class="habit-card glass rounded-[22px] p-4 flex items-center gap-3 fade-up ${
+                completed ? "completed" : ""
+              }"
+              style="
+                animation-delay:${index * 45}ms;
+                --habit-color:${COLOR_NAMES[habit.colorIndex] || COLOR_NAMES[0]}
+              "
+              data-habit-id="${escapeHtml(habit.id)}"
+            >
+
+              <button
+                class="habit-icon"
+                data-action="edit"
+                aria-label="Редактировать привычку"
+              >
+                ${escapeHtml(habit.emoji)}
+              </button>
+
+              <button
+                class="flex-1 text-left min-w-0"
+                data-action="edit"
+              >
+                <h3 class="habit-title font-bold text-[15px] truncate">
+                  ${escapeHtml(habit.name)}
+                </h3>
+
+                <p
+                  class="text-[11px] mt-1"
+                  style="color:var(--app-hint)"
+                >
+                  ${getFrequencyLabel(habit.frequency)}
+                </p>
+              </button>
+
+              <button
+                class="check-button ${
+                  completed ? "checked" : ""
+                }"
+                data-action="toggle"
+                aria-label="${
+                  completed
+                    ? "Отметить невыполненной"
+                    : "Отметить выполненной"
+                }"
+              >
+                <svg
+                  class="check-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <path
+                    d="m5 12 4 4L19 6"
+                    stroke="white"
+                    stroke-width="2.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+
+            </article>
+          `;
+        })
+        .join("");
+
+      container.querySelectorAll(".habit-card")
+        .forEach(card => {
+          card.addEventListener("click", event => {
+            const action =
+              event.target.closest("[data-action]")?.dataset.action;
+
+            const habitId =
+              card.dataset.habitId;
+
+            if (action === "toggle") {
+              event.stopPropagation();
+              toggleHabit(habitId);
+              return;
+            }
+
+            if (action === "edit") {
+              openHabitModal(habitId);
+            }
+          });
+        });
+    }
+
+    /* ============================================================
+       HABIT MODAL
+       ============================================================ */
+
+    function setupPickers() {
+      const emojiPicker =
+        document.getElementById("emojiPicker");
+
+      emojiPicker.innerHTML =
+        DEFAULT_EMOJIS.map(emoji => `
+          <button
+            class="emoji-option ${
+              emoji === selectedEmoji ? "selected" : ""
+            } glass w-full aspect-square rounded-xl text-xl"
+            data-emoji="${escapeHtml(emoji)}"
+          >
+            ${escapeHtml(emoji)}
+          </button>
+        `).join("");
+
+      emojiPicker.addEventListener("click", event => {
+        const button =
+          event.target.closest("[data-emoji]");
+
+        if (!button) return;
+
+        selectedEmoji = button.dataset.emoji;
+
+        emojiPicker.querySelectorAll(".emoji-option")
+          .forEach(el =>
+            el.classList.remove("selected")
+          );
+
+        button.classList.add("selected");
+
+        haptic("selection");
+      });
+
+      const colorPicker =
+        document.getElementById("colorPicker");
+
+      colorPicker.innerHTML =
+        COLORS.map((color, index) => `
+          <button
+            class="color-option ${
+              index === selectedColor ? "selected" : ""
+            } aspect-square rounded-xl"
+            style="background:${color}"
+            data-color="${index}"
+            aria-label="Цвет ${index + 1}"
+          ></button>
+        `).join("");
+
+      colorPicker.addEventListener("click", event => {
+        const button =
+          event.target.closest("[data-color]");
+
+        if (!button) return;
+
+        selectedColor =
+          Number(button.dataset.color);
+
+        colorPicker.querySelectorAll(".color-option")
+          .forEach(el =>
+            el.classList.remove("selected")
+          );
+
+        button.classList.add("selected");
+
+        haptic("selection");
+      });
+
+      document.querySelectorAll(".frequency-option")
+        .forEach(button => {
+          button.addEventListener("click", () => {
+            selectedFrequency =
+              button.dataset.frequency;
+
+            updateFrequencyButtons();
+
+            haptic("selection");
+          });
+        });
+
+      updateFrequencyButtons();
+    }
+
+    function updateFrequencyButtons() {
+      document.querySelectorAll(".frequency-option")
+        .forEach(button => {
+          const selected =
+            button.dataset.frequency === selectedFrequency;
+
+          button.style.background =
+            selected
+              ? "rgba(124,92,255,.20)"
+              : "rgba(255,255,255,.055)";
+
+          button.style.borderColor =
+            selected
+              ? "rgba(124,92,255,.65)"
+              : "rgba(255,255,255,.08)";
+
+          button.style.color =
+            selected
+              ? "#b6a9ff"
+              : "var(--app-text)";
+        });
+    }
+
+    function openHabitModal(habitId = null) {
+      editingHabitId = habitId;
+
+      const modal =
+        document.getElementById("habitModal");
+
+      const title =
+        document.getElementById("modalTitle");
+
+      const deleteButton =
+        document.getElementById("deleteHabit");
+
+      if (habitId) {
+        const habit =
+          state.habits.find(h => h.id === habitId);
+
+        if (!habit) return;
+
+        title.textContent = "Редактировать";
+
+        document.getElementById("habitName").value =
+          habit.name;
+
+        selectedEmoji = habit.emoji;
+        selectedColor = habit.colorIndex ?? 0;
+        selectedFrequency = habit.frequency || "daily";
+
+        deleteButton.classList.remove("hidden");
+      } else {
+        title.textContent = "Новая привычка";
+
+        document.getElementById("habitName").value = "";
+
+        selectedEmoji = DEFAULT_EMOJIS[0];
+        selectedColor = 0;
+        selectedFrequency = "daily";
+
+        deleteButton.classList.add("hidden");
+      }
+
+      refreshPickerSelection();
+
+      modal.classList.add("open");
+
+      setTimeout(() => {
+        document.getElementById("habitName").focus();
+      }, 300);
+    }
+
+    function refreshPickerSelection() {
+      document.querySelectorAll(".emoji-option")
+        .forEach(button => {
+          button.classList.toggle(
+            "selected",
+            button.dataset.emoji === selectedEmoji
+          );
+        });
+
+      document.querySelectorAll(".color-option")
+        .forEach(button => {
+          button.classList.toggle(
+            "selected",
+            Number(button.dataset.color) === selectedColor
+          );
+        });
+
+      updateFrequencyButtons();
+    }
+
+    function closeHabitModal() {
+      document
+        .getElementById("habitModal")
+        .classList.remove("open");
+
+      editingHabitId = null;
+    }
+
+    function saveHabit() {
+      const input =
+        document.getElementById("habitName");
+
+      const name =
+        input.value.trim();
+
+      if (!name) {
+        input.focus();
+        showToast("Введите название привычки");
+        haptic("medium");
+        return;
+      }
+
+      if (editingHabitId) {
+        const habit =
+          state.habits.find(h => h.id === editingHabitId);
+
+        if (!habit) return;
+
+        habit.name = name;
+        habit.emoji = selectedEmoji;
+        habit.colorIndex = selectedColor;
+        habit.frequency = selectedFrequency;
+
+        showToast("Привычка обновлена ✓");
+      } else {
+        state.habits.push({
+          id: generateId(),
+          name,
+          emoji: selectedEmoji,
+          colorIndex: selectedColor,
+          frequency: selectedFrequency,
+          createdDate: dateKey(),
+          createdAt: new Date().toISOString()
+        });
+
+        showToast("Привычка добавлена 🌱");
+      }
+
+      saveState();
+      closeHabitModal();
+      renderDashboard();
+      renderStats();
+
+      haptic("light");
+    }
+
+    function deleteHabit() {
+      if (!editingHabitId) return;
+
+      const habit =
+        state.habits.find(h => h.id === editingHabitId);
+
+      if (!habit) return;
+
+      state.habits =
+        state.habits.filter(h => h.id !== editingHabitId);
+
+      Object.keys(state.completions)
+        .forEach(key => {
+          state.completions[key] =
+            state.completions[key]
+              .filter(id => id !== editingHabitId);
+
+          if (state.completions[key].length === 0) {
+            delete state.completions[key];
+          }
+        });
+
+      saveState();
+
+      closeHabitModal();
+
+      renderDashboard();
+      renderStats();
+
+      showToast("Привычка удалена");
+      haptic("medium");
+    }
+
+    /* ============================================================
+       STATISTICS
+       ============================================================ */
+
+    function calculateTotalCompleted() {
+      return Object.values(state.completions)
+        .reduce(
+          (sum, ids) => sum + ids.length,
+          0
+        );
+    }
+
+    function calculateDayCompletion(date) {
+      const key = dateKey(date);
+
+      const scheduled =
+        state.habits.filter(habit =>
+          isHabitScheduled(habit, date)
+        );
+
+      if (scheduled.length === 0) return 0;
+
+      const completed =
+        scheduled.filter(habit =>
+          isCompleted(habit.id, key)
+        ).length;
+
+      return completed;
+    }
+
+    function calculateStreak() {
+      if (state.habits.length === 0) return 0;
+
+      let streak = 0;
+
+      let cursor = new Date();
+
+      while (true) {
+        const scheduled =
+          state.habits.filter(h =>
+            isHabitScheduled(h, cursor)
+          );
+
+        if (scheduled.length === 0) {
+          cursor = addDays(cursor, -1);
+          continue;
+        }
+
+        const completed =
+          scheduled.every(h =>
+            isCompleted(h.id, dateKey(cursor))
+          );
+
+        if (!completed) break;
+
+        streak++;
+
+        cursor = addDays(cursor, -1);
+
+        if (streak > 3650) break;
+      }
+
+      return streak;
+    }
+
+    function calculateHabitStreak(habitId) {
+      let streak = 0;
+      let cursor = new Date();
+
+      while (true) {
+        const habit =
+          state.habits.find(h => h.id === habitId);
+
+        if (!habit) break;
+
+        if (!isHabitScheduled(habit, cursor)) {
+          cursor = addDays(cursor, -1);
+          continue;
+        }
+
+        if (!isCompleted(habitId, dateKey(cursor))) {
+          break;
+        }
+
+        streak++;
+        cursor = addDays(cursor, -1);
+
+        if (streak > 3650) break;
+      }
+
+      return streak;
+    }
+
+    function calculateBestHabitStreak(habitId) {
+      const habit =
+        state.habits.find(h => h.id === habitId);
+
+      if (!habit) return 0;
+
+      let best = 0;
+      let current = 0;
+
+      const start = habit.createdDate
+        ? parseDate(habit.createdDate)
+        : addDays(new Date(), -365);
+
+      const today = new Date();
+
+      for (
+        let cursor = new Date(start);
+        cursor <= today;
+        cursor = addDays(cursor, 1)
+      ) {
+        if (!isHabitScheduled(habit, cursor)) {
+          continue;
+        }
+
+        if (isCompleted(habitId, dateKey(cursor))) {
+          current++;
+          best = Math.max(best, current);
+        } else {
+          current = 0;
+        }
+      }
+
+      return best;
+    }
+
+    function calculateAverageRate() {
+      if (state.habits.length === 0) return 0;
+
+      const days = [];
+
+      for (let i = 0; i < 7; i++) {
+        days.push(addDays(new Date(), -i));
+      }
+
+      let possible = 0;
+      let completed = 0;
+
+      days.forEach(day => {
+        state.habits.forEach(habit => {
+          if (isHabitScheduled(habit, day)) {
+            possible++;
+
+            if (
+              isCompleted(
+                habit.id,
+                dateKey(day)
+              )
+            ) {
+              completed++;
+            }
+          }
+        });
+      });
+
+      if (possible === 0) return 0;
+
+      return Math.round(
+        (completed / possible) * 100
+      );
+    }
+
+    function renderStats() {
+      const totalCompleted =
+        calculateTotalCompleted();
+
+      const streak =
+        calculateStreak();
+
+      const averageRate =
+        calculateAverageRate();
+
+      let best = 0;
+
+      state.habits.forEach(habit => {
+        best = Math.max(
+          best,
+          calculateBestHabitStreak(habit.id)
+        );
+      });
+
+      document.getElementById("statsStreak")
+        .textContent = streak;
+
+      document.getElementById("statsCompleted")
+        .textContent = totalCompleted;
+
+      document.getElementById("statsRate")
+        .textContent = `${averageRate}%`;
+
+      document.getElementById("statsBest")
+        .textContent = best;
+
+      renderChart();
+      renderHabitStats();
+    }
+
+    function renderChart() {
+      const chart =
+        document.getElementById("chart");
+
+      const days = [];
+
+      for (let i = 6; i >= 0; i--) {
+        days.push(
+          addDays(new Date(), -i)
+        );
+      }
+
+      const values =
+        days.map(day =>
+          calculateDayCompletion(day)
+        );
+
+      const max =
+        Math.max(
+          ...values,
+          1
+        );
+
+      chart.innerHTML =
+        days.map((day, index) => {
+          const value = values[index];
+
+          const height =
+            value === 0
+              ? 5
+              : Math.max(
+                  12,
+                  (value / max) * 100
+                );
+
+          const isToday =
+            dateKey(day) === dateKey();
+
+          return `
+            <div class="flex-1 h-full flex flex-col items-center justify-end gap-2">
+              <div
+                class="w-full max-w-[38px] flex-1 flex items-end"
+              >
+                <div
+                  class="stat-bar w-full ${
+                    value === 0 ? "opacity-25" : ""
+                  }"
+                  style="
+                    height:${height}%;
+                    animation-delay:${index * 45}ms;
+                  "
+                ></div>
+              </div>
+
+              <span
+                class="text-[10px] font-medium ${
+                  isToday ? "text-white" : ""
+                }"
+                style="${
+                  isToday
+                    ? ""
+                    : "color:var(--app-hint)"
+                }"
+              >
+                ${formatDateShort(day).split(" ")[0]}
+              </span>
+
+              <span
+                class="text-[10px] font-bold"
+                style="color:var(--app-hint)"
+              >
+                ${value}
+              </span>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function renderHabitStats() {
+      const container =
+        document.getElementById("habitStatsList");
+
+      if (state.habits.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="text-3xl mb-3">📊</div>
+            Пока нет данных
+          </div>
+        `;
+
+        return;
+      }
+
+      container.innerHTML =
+        state.habits.map((habit, index) => {
+          const streak =
+            calculateHabitStreak(habit.id);
+
+          let completed = 0;
+
+          Object.values(state.completions)
+            .forEach(ids => {
+              if (ids.includes(habit.id)) {
+                completed++;
+              }
+            });
+
+          return `
+            <div
+              class="glass rounded-[22px] p-4 flex items-center gap-3 fade-up"
+              style="animation-delay:${index * 45}ms"
+            >
+              <div
+                class="habit-icon"
+                style="background:${COLORS[habit.colorIndex] || COLORS[0]}"
+              >
+                ${escapeHtml(habit.emoji)}
+              </div>
+
+              <div class="flex-1 min-w-0">
+                <p class="font-bold text-sm truncate">
+                  ${escapeHtml(habit.name)}
+                </p>
+
+                <p
+                  class="text-[11px] mt-1"
+                  style="color:var(--app-hint)"
+                >
+                  ${completed} выполнений
+                </p>
+              </div>
+
+              <div class="text-right">
+                <p class="font-extrabold text-sm">
+                  🔥 ${streak}
+                </p>
+
+                <p
+                  class="text-[10px]"
+                  style="color:var(--app-hint)"
+                >
+                  серия
+                </p>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    /* ============================================================
+       NAVIGATION
+       ============================================================ */
+
+    function showScreen(screen) {
+      const dashboard =
+        document.getElementById("dashboardScreen");
+
+      const stats =
+        document.getElementById("statsScreen");
+
+      const nav =
+        document.getElementById("bottomNav");
+
+      if (screen === "stats") {
+        dashboard.classList.add("hidden");
+        stats.classList.remove("hidden");
+
+        nav.classList.add("hidden");
+
+        renderStats();
+        setupBackButton();
+
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth"
+        });
+      } else {
+        stats.classList.add("hidden");
+        dashboard.classList.remove("hidden");
+
+        nav.classList.remove("hidden");
+
+        hideBackButton();
+
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth"
+        });
+      }
+
+      document.querySelectorAll(".nav-item")
+        .forEach(item => {
+          item.classList.toggle(
+            "active",
+            item.dataset.screen === screen
+          );
+        });
+    }
+
+    /* ============================================================
+       PROFILE
+       ============================================================ */
+
+    function openProfile() {
+      document
+        .getElementById("profileModal")
+        .classList.add("open");
+    }
+
+    function closeProfile() {
+      document
+        .getElementById("profileModal")
+        .classList.remove("open");
+    }
+
+    /* ============================================================
+       TOAST
+       ============================================================ */
+
+    let toastTimer = null;
+
+    function showToast(message) {
+      const toast =
+        document.getElementById("toast");
+
+      toast.textContent = message;
+      toast.classList.add("show");
+
+      clearTimeout(toastTimer);
+
+      toastTimer = setTimeout(() => {
+        toast.classList.remove("show");
+      }, 1800);
+    }
+
+    /* ============================================================
+       UTILS
+       ============================================================ */
+
+    function pluralize(number, forms) {
+      const n = Math.abs(number) % 100;
+      const n1 = n % 10;
+
+      if (n > 10 && n < 20) {
+        return forms[2];
+      }
+
+      if (n1 > 1 && n1 < 5) {
+        return forms[1];
+      }
+
+      if (n1 === 1) {
+        return forms[0];
+      }
+
+      return forms[2];
+    }
+
+    function getFrequencyLabel(frequency) {
+      switch (frequency) {
+        case "alternate":
+          return "Через день";
+
+        case "weekdays":
+          return "По будням";
+
+        default:
+          return "Каждый день";
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    /* ============================================================
+       EVENT LISTENERS
+       ============================================================ */
+
+    function setupEvents() {
+      document
+        .getElementById("addButton")
+        .addEventListener("click", () => {
+          haptic("light");
+          openHabitModal();
+        });
+
+      document
+        .getElementById("emptyAddButton")
+        .addEventListener("click", () => {
+          haptic("light");
+          openHabitModal();
+        });
+
+      document
+        .getElementById("closeModal")
+        .addEventListener("click", closeHabitModal);
+
+      document
+        .getElementById("cancelModal")
+        .addEventListener("click", closeHabitModal);
+
+      document
+        .getElementById("saveHabit")
+        .addEventListener("click", saveHabit);
+
+      document
+        .getElementById("deleteHabit")
+        .addEventListener("click", deleteHabit);
+
+      document
+        .getElementById("profileButton")
+        .addEventListener("click", openProfile);
+
+      document
+        .getElementById("closeProfile")
+        .addEventListener("click", closeProfile);
+
+      document
+        .getElementById("statsBackButton")
+        .addEventListener("click", () => {
+          showScreen("dashboard");
+        });
+
+      document.querySelectorAll(".nav-item")
+        .forEach(item => {
+          item.addEventListener("click", () => {
+            showScreen(item.dataset.screen);
+          });
+        });
+
+      document
+        .getElementById("habitModal")
+        .addEventListener("click", event => {
+          if (
+            event.target.id === "habitModal"
+          ) {
+            closeHabitModal();
+          }
+        });
+
+      document
+        .getElementById("profileModal")
+        .addEventListener("click", event => {
+          if (
+            event.target.id === "profileModal"
+          ) {
+            closeProfile();
+          }
+        });
+
+      document
+        .getElementById("habitName")
+        .addEventListener("keydown", event => {
+          if (event.key === "Enter") {
+            saveHabit();
+          }
+        });
+    }
+
+    /* ============================================================
+       DEMO DATA
+       ============================================================ */
+
+    function createDemoDataIfNeeded() {
+      /*
+       * Данные специально НЕ создаются автоматически.
+       * Пользователь начинает с чистого интерфейса.
+       */
+    }
+
+    /* ============================================================
+       INIT
+       ============================================================ */
+
+    function init() {
+      initTelegram();
+      setupUser();
+      setupGreeting();
+      setupPickers();
+      setupEvents();
+      createDemoDataIfNeeded();
+
+      renderDashboard();
+      renderStats();
+
+      showScreen("dashboard");
+    }
+
+    init();
+  </script>
+</body>
+</html>
+```
